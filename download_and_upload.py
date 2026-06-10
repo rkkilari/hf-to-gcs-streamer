@@ -62,4 +62,9 @@ def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
     print("\nStreaming pipeline finished successfully! No runner disk space was used.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Stream massive models directly from HF to GCS via
+    parser = argparse.ArgumentParser(description="Stream massive models directly from HF to GCS via RAM memory chunking.")
+    parser.add_argument("--repo_id", required=True, help="Hugging Face Repository")
+    parser.add_argument("--filename", required=True, help="Exact filename matching casing")
+    parser.add_argument("--bucket", required=True, help="Target GCS Bucket Name")
+    parser.add_argument("--prefix", default="", help="Optional sub-folder directory path")
+    args = parser.parse_args()
