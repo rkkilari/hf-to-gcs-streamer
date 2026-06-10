@@ -8,8 +8,10 @@ def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
     url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
     
     headers = {}
-    if hf_token:
-        headers["Authorization"] = f"Bearer {hf_token}"
+        if hf_token:
+            headers["Authorization"] = f"Bearer {hf_token}"
+            # Crucial for some gated/restricted API configurations:
+            headers["User-Agent"] = "huggingface-hub/0.23.0"
         
     print("Initializing GCS Client...")
     storage_client = storage.Client()
