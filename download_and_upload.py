@@ -4,25 +4,21 @@ import requests
 from google.cloud import storage
 
 def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
-    # Try the alternate raw endpoint which is friendlier to direct chunk streaming
     url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
     
-    # Emulate the official huggingface-hub python client headers
     headers = {
-        "User-Agent": "huggingface-hub/0.23.0 python/3.10",
+        "User-Agent": "huggingface-hub/0.23.0 python/3.11",
         "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate",
     }
     
-    if hf_token:
-        # Strip any accidental spaces from the token copy-paste
+    if hf_token and hf_token.strip():
         token_clean = hf_token.strip()
         headers["Authorization"] = f"Bearer {token_clean}"
-        print("-> Hugging Face Token successfully formatted and attached.")
+        print("-> Hugging Face Token successfully detected and attached to request headers.")
     else:
-        print("-> Warning: No HF_TOKEN detected in the environment. Gated repositories will fail.")
+        print("-> Warning: No HF_TOKEN detected in the execution environment. Gated models will fail.")
         
-    print("Initializing GCS Client...")
+    print("Initializing Google Cloud Storage Client...")
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     
@@ -31,22 +27,20 @@ def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
     
     print(f"Opening network stream from Hugging Face: {url}")
     
-    # Use allow_redirects=True to handle Hugging Face's AWS/Cloudflare backend redirects
     with requests.get(url, headers=headers, stream=True, allow_redirects=True) as response:
-        if response.status_code == 401 or response.status_code == 403:
+        if response.status_code in [401, 403]:
             print(f"\n[ERROR] {response.status_code} Unauthorized.")
-            print("1. Ensure you accepted the model terms on Hugging Face using your browser.")
-            print("2. Confirm 'HF_TOKEN' is added in your GitHub REPOSITORY Secrets, not profile settings.")
+            print("If repository secrets fail, paste your token directly into the workflow UI text box.")
             response.raise_for_status()
         else:
             response.raise_for_status()
         
         total_size = int(response.headers.get('content-length', 0))
-        print(f"Connected! File size to transfer: {total_size / (1024**3):.4f} GB")
-        print(f"Streaming data directly to gs://{bucket_name}/{gcs_blob_path}...")
+        print(f"Connected! Target file size: {total_size / (1024**3):.4f} GB")
+        print(f"Streaming chunks directly to gs://{bucket_name}/{gcs_blob_path}...")
         
         uploaded_bytes = 0
-        chunk_size = 50 * 1024 * 1024  # 50 MB chunk buffers
+        chunk_size = 50 * 1024 * 1024  # 50 MB safe RAM chunking
         blob.chunk_size = chunk_size
         
         with blob.open("wb", ignore_flush=True) as gcs_file:
@@ -55,14 +49,15 @@ def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
                     gcs_file.write(chunk)
                     uploaded_bytes += len(chunk)
                     
+                    # Log upload progress every ~1 GB
                     if uploaded_bytes % (1024 * 1024 * 1024) < chunk_size:
                         print(f"Transferred: {uploaded_bytes / (1024**3):.2f} GB / {total_size / (1024**3):.2f} GB")
 
-    print(f"\nStreaming complete! Verifying object status in GCS...")
+    print(f"\nStreaming complete! Verifying target object status inside GCS...")
     if blob.exists():
-        print(f"Success! Confirmed file exists at destination. Size: {blob.size / (1024**3):.4f} GB")
+        print(f"Success! Confirmed file exists at destination. Final Size: {blob.size / (1024**3):.4f} GB")
     else:
-        print("Warning: Upload complete, but GCS bucket index update is lagging.")
+        print("Warning: Stream loop ended but GCS bucket object index verification timed out.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stream models from HF to GCS via RAM memory chunking.")
