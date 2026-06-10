@@ -1,0 +1,49 @@
+name: Stream Massive GGUF to GCS
+
+on:
+  workflow_dispatch:
+    inputs:
+      hf_repo_id:
+        description: 'Hugging Face Repo ID (e.g., Qwen/Qwen2.5-72B-Instruct-GGUF)'
+        required: true
+      gguf_filename:
+        description: 'Exact GGUF Filename (e.g., qwen2.5-72b-instruct-q4_k_m.gguf)'
+        required: true
+      gcs_bucket:
+        description: 'Target GCS Bucket Name'
+        required: true
+      gcs_path_prefix:
+        description: 'Folder path inside GCS bucket'
+        required: false
+        default: 'gguf_models/'
+
+jobs:
+  stream_transfer:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        pip install requests google-cloud-storage
+
+    - name: Authenticate to Google Cloud
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Run Memory-Streaming Script
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python download_and_upload.py \
+          --repo_id "${{ github.event.inputs.hf_repo_id }}" \
+          --filename "${{ github.event.inputs.gguf_filename }}" \
+          --bucket "${{ github.event.inputs.gcs_bucket }}" \
+          --prefix "${{ github.event.inputs.gcs_path_prefix }}"
