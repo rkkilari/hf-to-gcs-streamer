@@ -55,6 +55,7 @@ def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
 
     print(f"\nStreaming complete! Verifying target object status inside GCS...")
     if blob.exists():
+        blob.reload()  # CRITICAL: Reloads metadata from GCS to fetch the actual file size attributes
         print(f"Success! Confirmed file exists at destination. Final Size: {blob.size / (1024**3):.4f} GB")
     else:
         print("Warning: Stream loop ended but GCS bucket object index verification timed out.")
