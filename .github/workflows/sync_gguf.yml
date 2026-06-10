@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       hf_repo_id:
-        description: 'Hugging Face Repo ID (e.g., Qwen/Qwen2.5-72B-Instruct-GGUF)'
+        description: 'Hugging Face Repo ID (e.g., tiiuaae/Falcon-H1-Tiny-90M-Instruct-GGUF)'
         required: true
       gguf_filename:
-        description: 'Exact GGUF Filename (e.g., qwen2.5-72b-instruct-q4_k_m.gguf)'
+        description: 'Exact GGUF Filename (e.g., Falcon-H1-Tiny-90M-Instruct-Q4_K_M.gguf)'
         required: true
       gcs_bucket:
         description: 'Target GCS Bucket Name'
@@ -40,6 +40,7 @@ jobs:
 
     - name: Run Memory-Streaming Script
       env:
+        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         python download_and_upload.py \
