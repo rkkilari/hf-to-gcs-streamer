@@ -4,11 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       hf_repo_id:
-        description: 'Hugging Face Repo ID (e.g., tiiuaae/Falcon-H1-Tiny-90M-Instruct-GGUF)'
+        description: 'Hugging Face Repo ID'
         required: true
+        default: 'tiiuac/Falcon-H1-Tiny-90M-Instruct-GGUF'
       gguf_filename:
-        description: 'Exact GGUF Filename (e.g., Falcon-H1-Tiny-90M-Instruct-Q4_K_M.gguf)'
+        description: 'Exact GGUF Filename'
         required: true
+        default: 'Falcon-H1-Tiny-90M-Instruct-Q4_K_M.gguf'
       gcs_bucket:
         description: 'Target GCS Bucket Name'
         required: true
@@ -20,6 +22,11 @@ on:
 jobs:
   stream_transfer:
     runs-on: ubuntu-latest
+    # FORCE Global Environment Injection for the entire container lifecycle
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -27,7 +34,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11' # Upgraded to 3.11 to silence the Google deprecation warning
 
     - name: Install Dependencies
       run: |
@@ -39,9 +46,6 @@ jobs:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
     - name: Run Memory-Streaming Script
-      env:
-        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         python download_and_upload.py \
           --repo_id "${{ github.event.inputs.hf_repo_id }}" \
