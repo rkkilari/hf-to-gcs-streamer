@@ -18,13 +18,15 @@ on:
         description: 'Folder path inside GCS bucket'
         required: false
         default: 'gguf_models/'
+      hf_token_direct:
+        description: 'OPTIONAL: Paste HF Token directly here if GitHub Secrets fail'
+        required: false
+        default: ''
 
 jobs:
   stream_transfer:
     runs-on: ubuntu-latest
-    # FORCE Global Environment Injection for the entire container lifecycle
     env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       
     steps:
@@ -34,7 +36,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11' # Upgraded to 3.11 to silence the Google deprecation warning
+        python-version: '3.11'
 
     - name: Install Dependencies
       run: |
@@ -46,6 +48,9 @@ jobs:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
     - name: Run Memory-Streaming Script
+      env:
+        # Uses the manual input box if filled; otherwise falls back to GitHub Repository Secrets
+        HF_TOKEN: ${{ github.event.inputs.hf_token_direct || secrets.HF_TOKEN }}
       run: |
         python download_and_upload.py \
           --repo_id "${{ github.event.inputs.hf_repo_id }}" \
