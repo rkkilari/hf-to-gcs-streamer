@@ -4,10 +4,8 @@ import requests
 from google.cloud import storage
 
 def stream_hf_to_gcs(repo_id, filename, bucket_name, gcs_prefix, hf_token=None):
-    # Construct the Hugging Face direct download URL
-    url = f"https://huggingface.co/api/models/{repo_id}/allow/main/{filename}"
-    # Alternate direct URL format if API endpoint varies:
-    url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
+# Construct the Hugging Face direct API download URL
+    url = f"https://huggingface.co/api/models/{repo_id}/download?filename={filename}"
     
     headers = {}
     if hf_token:
