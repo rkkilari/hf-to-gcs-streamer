@@ -6,14 +6,15 @@ on:
       hf_repo_id:
         description: 'Hugging Face Repo ID'
         required: true
-        default: 'tiiuac/Falcon-H1-Tiny-90M-Instruct-GGUF'
+        default: ''
       gguf_filename:
         description: 'Exact GGUF Filename'
         required: true
-        default: 'Falcon-H1-Tiny-90M-Instruct-Q4_K_M.gguf'
+        default: ''
       gcs_bucket:
         description: 'Target GCS Bucket Name'
         required: true
+        default: 'llms_models'
       gcs_path_prefix:
         description: 'Folder path inside GCS bucket'
         required: false
